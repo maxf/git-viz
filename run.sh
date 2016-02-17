@@ -6,5 +6,5 @@ cd repo
 git clone $1
 cd $NAME
 
-git log --no-merges --pretty=format:'%h|%ad|%s' > ../log.txt
+git log --no-merges --pretty=format:'%h|%cd|%s' > ../log.txt
 
