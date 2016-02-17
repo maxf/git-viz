@@ -2,6 +2,10 @@ svg {
   background-color: #ddd;
 }
 
+#frame {
+  fill: transparent;
+}
+
 .axis line, .axis path {
   stroke: black;
 }
