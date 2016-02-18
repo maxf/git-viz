@@ -1,4 +1,4 @@
-/* global d3 */
+/* global d3, moment */
 (function() {
 
 var margin = {top: 40, right: 40, bottom: 40, left:40},
@@ -20,18 +20,18 @@ var timeAxis = (timeScale) =>
 
 
 
-function groupByDay(accumulatedDays, commit) {
-  if (!accumulatedDays.length) {
+function groupByWeek(accumulated, commit) {
+  if (!accumulated.length) {
     return [{date:commit.date, count:1}];
   }
-  var lastAccumulatedDay = accumulatedDays[accumulatedDays.length-1];
-  if (lastAccumulatedDay.date.toDateString() === commit.date.toDateString()) {
-    accumulatedDays[accumulatedDays.length-1].count++;
-    return accumulatedDays;
+  var lastAccumulatedDay = accumulated[accumulated.length-1];
+  if (lastAccumulatedDay.date.week() === commit.date.week()) {
+    accumulated[accumulated.length-1].count++;
+    return accumulated;
   } else {
-    accumulatedDays.push({date:commit.date, count:1});
+    accumulated.push({date:commit.date, count:1});
   }
-  return accumulatedDays;
+  return accumulated;
 }
 
 var logLineRegexp = /^([0-9a-f]{7})\|([^|]+)\|([^|].+)$/;
@@ -40,7 +40,7 @@ function parseCommitLine(text) {
   var fields = text.match(logLineRegexp);
   return {
     hash: fields[1],
-    date: new Date(fields[2]),
+    date: moment(fields[2]),
     comment: fields[3]
   }
 }
@@ -50,15 +50,15 @@ function isValidLogLine(line) {
 }
 
 d3.text('repo/log.txt', (error, text) => {
-  var commitsPerDay = text
+  var commitsPerWeek = text
     .split('\n')
     .filter(isValidLogLine)
     .map(parseCommitLine)
-    .reduce(groupByDay, [])
+    .reduce(groupByWeek, [])
   ;
 
-  var minDate = commitsPerDay[commitsPerDay.length-1].date;
-  var maxDate = commitsPerDay[0].date;
+  var minDate = commitsPerWeek[commitsPerWeek.length-1].date;
+  var maxDate = commitsPerWeek[0].date;
   var tScale = timeScale(minDate, maxDate, margin);
   var canvas = d3.select('#canvas')
     .append('g')
@@ -72,7 +72,7 @@ d3.text('repo/log.txt', (error, text) => {
   ;
 
   canvas.selectAll('circle')
-    .data(commitsPerDay)
+    .data(commitsPerWeek)
     .enter()
     .append('rect')
       .attr('x', commit => tScale(commit.date))
@@ -81,7 +81,7 @@ d3.text('repo/log.txt', (error, text) => {
       .attr('width', 5)
       .attr('fill', 'red')
       .append('title')
-        .text(commit => `${commit.date.toDateString()}: ${commit.count} commits.`)
+        .text(commit => `Week ${commit.date.week()}: ${commit.count} commits.`)
       ;
 
   canvas.append('g')
