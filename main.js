@@ -18,7 +18,13 @@ var timeAxis = (timeScale) =>
     .tickSize(10, 0)
     .tickPadding(8);
 
+var nbCommitsScale = (maxCommits) =>
+  d3.scale.linear()
+    .domain([0, maxCommits])
+    .range([200, 0]);
 
+var nbCommitsAxis = d3.svg.axis()
+  .scale(nbCommitsScale);
 
 function groupByWeek(accumulated, commit) {
   if (!accumulated.length) {
@@ -57,9 +63,13 @@ d3.text('repo/log.txt', (error, text) => {
     .reduce(groupByWeek, [])
   ;
 
+  var maxWeeklyCommits = commitsPerWeek
+    .reduce((max, week) => Math.max(max, week.count), 0);
+
   var minDate = commitsPerWeek[commitsPerWeek.length-1].date;
   var maxDate = commitsPerWeek[0].date;
   var tScale = timeScale(minDate, maxDate, margin);
+  var nScale = nbCommitsScale(maxWeeklyCommits);
   var canvas = d3.select('#canvas')
     .append('g')
     .attr('width', width)
@@ -76,19 +86,22 @@ d3.text('repo/log.txt', (error, text) => {
     .enter()
     .append('rect')
       .attr('x', commit => tScale(commit.date))
-      .attr('y', commit => height/2 - 5 * commit.count)
-      .attr('height', commit => 5 * commit.count)
+      .attr('y', commit => nScale(commit.count))
+      .attr('height', 5)
       .attr('width', 5)
       .attr('fill', 'red')
       .append('title')
-        .text(commit => `Week ${commit.date.week()}: ${commit.count} commits.`)
-      ;
+        .text(commit => `Week ${commit.date.week()}: ${commit.count} commits.`);
 
   canvas.append('g')
     .attr('class', 'axis')
     .attr('transform', `translate(0, ${height - margin.top - margin.bottom})`)
-    .call(timeAxis(tScale))
-  ;
+    .call(timeAxis(tScale));
+
+//  canvas.append('g')
+//    .attr('class', 'axis')
+//    .attr('transform', `translate(0, ${height - margin.top - margin.bottom})`)
+//    .call(nbCommitsAxis(nScale));
 
 });
 
