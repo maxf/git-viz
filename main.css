@@ -6,6 +6,10 @@ svg {
   fill: transparent;
 }
 
-.axis line, .axis path {
-  stroke: black;
+.axis {
+  fill: black;
+}
+
+.bar {
+  fill: darkgrey;
 }

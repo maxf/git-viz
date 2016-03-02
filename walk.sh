@@ -4,6 +4,8 @@ cd $1
 
 git pull > /dev/null 2>&1
 
+echo "date,hash,lines,errors"
+
 while [ $? -eq 0 ]; do
     SHA=`git rev-parse HEAD`
     DATE=`git show -s --format=%ad --date=iso8601-strict`
