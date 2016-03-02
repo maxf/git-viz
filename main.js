@@ -9,25 +9,6 @@ var timeScale = (minDate, maxDate) =>
     .domain([minDate, d3.time.day.offset(maxDate, 1)])
     .rangeRound([0, width - margin.left - margin.right]);
 
-
-function groupByWeek(accumulated, commit) {
-  if (!accumulated.length) {
-    return [{date: commit.date, count:1, weekNumber: commit.weekNumber}];
-  }
-  var lastAccumulatedDay = accumulated[accumulated.length-1];
-  if (lastAccumulatedDay.weekNumber === commit.weekNumber) {
-    accumulated[accumulated.length-1].count++;
-    return accumulated;
-  } else {
-    accumulated.push({
-      date: commit.date,
-      count:1,
-      weekNumber: commit.weekNumber
-    });
-  }
-  return accumulated;
-}
-
 var logLineRegexp = /^([0-9a-f]{7})\|([^|]+)\|([^|].+)$/;
 
 function parseCommitLine(text) {
@@ -51,49 +32,17 @@ canvas.append('rect')
 
 
 
-
-
-
-d3.text('repo/log.txt', (error, text) => {
-  if (error) throw error;
-
-  var values = text
-    .split('\n')
-    .filter(isValidLogLine)
-    .map(parseCommitLine);
-
-  var x = timeScale(values[values.length - 1], values[0]);
-
-  var y = d3.scale.linear()
-    .domain([0, 20])
-    .range([height, 0]);
-
+function drawAxes(xScale, yScale, canvas, height) {
 
   var xAxis = d3.svg.axis()
-    .scale(x)
+    .scale(xScale)
     .orient("bottom")
     .tickFormat(d3.time.format("%Y-%m"));
 
   var yAxis = d3.svg.axis()
-    .scale(y)
+    .scale(yScale)
     .orient("left")
     .ticks(10);
-
-  var data = d3.layout.histogram()
-    .bins(x.ticks(20))
-    (values);
-
-  var bar = canvas.selectAll('.bar')
-    .data(data)
-    .enter()
-    .append('g').attr('class', 'bar')
-      .attr('transform', d => `translate(${x(d.x)}, ${y(d.y)})`)
-      .attr('fill', 'red')
-
-  bar.append('rect')
-    .attr('x', 1)
-    .attr('width', 18) // should be calculated from data[0].dx
-    .attr('height', d => height - y(d.y));
 
   canvas.append("g")
       .attr("class", "x axis")
@@ -114,7 +63,42 @@ d3.text('repo/log.txt', (error, text) => {
       .attr("dy", ".71em")
       .style("text-anchor", "end")
       .text('commits');
+}
 
+function drawBarChart(canvas, values) {
+  var startTime = values[values.length - 1];
+  var endTime = values[0];
+  var x = timeScale(startTime, endTime);
+  var data = d3.layout.histogram()
+    .bins(x.ticks(20))
+    (values);
+  var maxCommitsPerBin = Math.max.apply(null, data.map(bin => bin.length));
+  var y = d3.scale.linear()
+    .domain([0, maxCommitsPerBin])
+    .range([height, 0]);
+  var barWidth = x(startTime.getMilliseconds() + data[0].dx)
+               - x(startTime.getMilliseconds())
+               + 1;
+  var bar = canvas.selectAll('.bar')
+    .data(data)
+    .enter()
+    .append('g').attr('class', 'bar')
+      .attr('transform', d => `translate(${x(d.x)}, ${y(d.y)})`)
+      .attr('fill', 'red')
+  bar.append('rect')
+    .attr('x', 1)
+    .attr('width', barWidth)
+    .attr('height', d => height - y(d.y));
+  drawAxes(x, y, canvas, height);
+}
+
+d3.text('repo/log.txt', (error, text) => {
+  if (error) throw error;
+  var values = text
+    .split('\n')
+    .filter(isValidLogLine)
+    .map(parseCommitLine);
+  drawBarChart(canvas, values);
 });
 
 
