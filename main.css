@@ -13,3 +13,21 @@ svg {
 .bar {
   fill: darkgrey;
 }
+
+.lines {
+  fill: none;
+  stroke: steelblue;
+  stroke-width: 1.5px;
+}
+
+.files {
+  fill: none;
+  stroke: red;
+  stroke-width: 1.5px;
+}
+
+.lpf {
+  fill: none;
+  stroke: #797;
+  stroke-width: 1.5px;
+}

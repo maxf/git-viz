@@ -1,18 +1,24 @@
-/* global d3, requirejs */
+/* global d3, requirejs, R */
 
 requirejs(['d3', 'd3-jetpack'], () => {
 
   var margin = {top: 40, right: 40, bottom: 40, left:40};
   var width = 800, height = 400;
-  var numberOfBins = 20;
+  var numberOfBins = 60;
 
+  var x;
 
   var timeScale = (minDate, maxDate) =>
     d3.time.scale()
       .domain([minDate, d3.time.day.offset(maxDate, 1)])
       .rangeRound([0, width - margin.left - margin.right]);
 
-  var logLineRegexp = /^([0-9a-f]{7})\|([^|]+)\|([^|].+)$/;
+  var linearScale = (min, max) =>
+      d3.scale.linear()
+        .domain([min, max])
+        .range([height, 0]);
+
+ var logLineRegexp = /^([0-9a-f]{7})\|([^|]+)\|([^|].+)$/;
 
   function parseCommitLine(text) {
     var fields = text.match(logLineRegexp);
@@ -67,17 +73,14 @@ requirejs(['d3', 'd3-jetpack'], () => {
   function drawBarChart(canvas, values) {
     var startTime = values[values.length - 1];
     var endTime = values[0];
-    var x = timeScale(startTime, endTime);
+    x = timeScale(startTime, endTime);
     var data = d3.layout.histogram()
       .bins(x.ticks(numberOfBins))
       (values);
     var maxCommitsPerBin = Math.max.apply(null, data.map(bin => bin.length));
-    var y = d3.scale.linear()
-      .domain([0, maxCommitsPerBin])
-      .range([height, 0]);
-      console.log(x(0));
-//    var barWidth = x(data[0].dx) - x(0) + 1;
-    var barWidth = 1 + (x(endTime.getTime()) - x(startTime.getTime())) / (numberOfBins * 2);
+    var y = linearScale(0, maxCommitsPerBin);
+    var barWidth = x(data[0].dx) - x(0) + 1;
+    //    var barWidth = 1 + (x(endTime.getTime()) - x(startTime.getTime())) / (numberOfBins * 2);
     var bar = canvas.selectAll('.bar')
       .data(data)
       .enter()
@@ -90,6 +93,36 @@ requirejs(['d3', 'd3-jetpack'], () => {
     drawAxes(x, y, canvas, height);
   }
 
+
+  // make an identifier from any string
+  var idFrom = R.compose(String.toLowerCase, str => str.replace(/[^\w]/g, '_'));
+
+  debugger
+
+  // Functions to get the min or max of a specific field of an array of objects
+  var minMax = (fun) => (array, field) => fun.apply(null, array.map(d=>d[field]));
+  var maxOf = minMax(Math.max);
+  var minOf = minMax(Math.min);
+
+  // generator of the d attribute of a <path>
+  var makeSvgLine = (field, scale) => d3.svg.line()
+    .x(d=>x(d3.time.format.iso.parse(d.date)))
+    .y(d=>scale(d[field]))
+    .interpolate("basis");
+
+  // create a path on the evolution of a field in a dataset
+  var drawPath = function(data, field) {
+    var y = linearScale(0, maxOf(data, field));
+    var path = makeSvgLine(field, y);
+
+    canvas.append('path.' + field)
+      .datum(data)
+      .attr('d', path);
+  };
+
+
+  // Start reading the files
+
   d3.text('repo/log.txt', (error, text) => {
     if (error) throw error;
     var values = text
@@ -97,6 +130,21 @@ requirejs(['d3', 'd3-jetpack'], () => {
       .filter(isValidLogLine)
       .map(parseCommitLine);
     drawBarChart(canvas, values);
-  });
 
+    d3.csv('repo/lines.csv', (error, data) => {
+      if (error) throw error;
+
+      drawPath(data, 'files');
+      drawPath(data, 'lines');
+
+      var lpf = data.map(d=> { return { date: d.date, linesPerFile: d.lines/d.files} });
+      var maxLpf = maxOf(lpf, 'linesPerFile');
+      var minLpf = minOf(lpf, 'linesPerFile');
+      var yLpf = linearScale(maxLpf, minLpf);
+      var lpfPath = makeSvgLine('linesPerFile', yLpf);
+      canvas.append('path.lpf')
+        .datum(lpf)
+        .attr('d', lpfPath);
+    });
+  });
 });
