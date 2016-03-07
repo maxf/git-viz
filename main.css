@@ -40,8 +40,16 @@ svg {
   fill: none;
 }
 
-#lpf {
-  fill: none;
-  stroke: #797;
-  stroke-width: 1.5px;
+#lines_per_file {
+  stroke: #555;
 }
+
+#lines_per_file text {
+  fill: #555;
+}
+
+#lines_per_file path {
+  stroke-width: 2px;
+  fill: none;
+}
+

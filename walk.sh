@@ -4,7 +4,7 @@ cd $1
 
 git pull > /dev/null 2>&1
 
-echo "date,hash,Number of files,Number of lines"
+echo "date,hash,Number of files,Number of lines,Lines per file"
 
 while [ $? -eq 0 ]; do
     SHA=`git rev-parse HEAD`
@@ -20,7 +20,7 @@ while [ $? -eq 0 ]; do
        NUM_LINES=`printf '%b\n' $FILES | xargs wc -l | grep -o "[0-9]\+ total" | cut -d ' ' -f 1`
 
     fi
-    echo "$DATE,$SHA,$NUM_FILES,$NUM_LINES"
+    echo "$DATE,$SHA,$NUM_FILES,$NUM_LINES,$(( NUM_LINES / NUM_FILES ))"
     git reset --hard "HEAD~" > /dev/null 2>&1
     # Note: for things like code quality measurement, skipping commits makes sense (HEAD~4) and is much faster
 done

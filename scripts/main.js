@@ -137,16 +137,7 @@ require(['ramda', 'd3', 'd3-jetpack'], function(_, d3) {
 
       drawPath(data, 'Number of files');
       drawPath(data, 'Number of lines');
-
-      var lpf = data.map(d=> { return { date: d.date, linesPerFile: d.lines/d.files} });
-      var maxLpf = maxOf(lpf, 'linesPerFile');
-      var minLpf = minOf(lpf, 'linesPerFile');
-      var yLpf = linearScale(maxLpf, minLpf);
-      var lpfPath = makeSvgLine('linesPerFile', yLpf);
-      canvas.append('path')
-        .attr('id', 'lpf')
-        .datum(lpf)
-        .attr('d', lpfPath);
+      drawPath(data, 'Lines per file');
     });
   });
 });
