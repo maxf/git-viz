@@ -4,7 +4,7 @@ cd $1
 
 git pull > /dev/null 2>&1
 
-echo "date,hash,files,lines"
+echo "date,hash,Number of files,Number of lines"
 
 while [ $? -eq 0 ]; do
     SHA=`git rev-parse HEAD`

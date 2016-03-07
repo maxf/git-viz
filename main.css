@@ -14,19 +14,33 @@ svg {
   fill: darkgrey;
 }
 
-.lines {
-  fill: none;
-  stroke: steelblue;
-  stroke-width: 1.5px;
-}
-
-.files {
-  fill: none;
+#number_of_files {
   stroke: red;
-  stroke-width: 1.5px;
 }
 
-.lpf {
+#number_of_files text {
+  fill: red;
+}
+
+#number_of_files path {
+  stroke-width: 2px;
+  fill: none;
+}
+
+#number_of_lines {
+  stroke: steelblue;
+}
+
+#number_of_lines text {
+  fill: steelblue;
+}
+
+#number_of_lines path {
+  stroke-width: 2px;
+  fill: none;
+}
+
+#lpf {
   fill: none;
   stroke: #797;
   stroke-width: 1.5px;

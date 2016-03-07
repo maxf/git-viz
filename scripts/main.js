@@ -1,6 +1,4 @@
-/* global d3, requirejs, R */
-
-requirejs(['d3', 'd3-jetpack'], () => {
+require(['ramda', 'd3', 'd3-jetpack'], function(_, d3) {
 
   var margin = {top: 40, right: 40, bottom: 40, left:40};
   var width = 800, height = 400;
@@ -95,9 +93,7 @@ requirejs(['d3', 'd3-jetpack'], () => {
 
 
   // make an identifier from any string
-  var idFrom = R.compose(String.toLowerCase, str => str.replace(/[^\w]/g, '_'));
-
-  debugger
+  var idFrom = str => str.replace(/[^\w]/g, '_').toLowerCase();
 
   // Functions to get the min or max of a specific field of an array of objects
   var minMax = (fun) => (array, field) => fun.apply(null, array.map(d=>d[field]));
@@ -111,13 +107,17 @@ requirejs(['d3', 'd3-jetpack'], () => {
     .interpolate("basis");
 
   // create a path on the evolution of a field in a dataset
-  var drawPath = function(data, field) {
-    var y = linearScale(0, maxOf(data, field));
-    var path = makeSvgLine(field, y);
-
-    canvas.append('path.' + field)
+  var drawPath = function(data, fieldName) {
+    var y = linearScale(0, maxOf(data, fieldName));
+    var path = makeSvgLine(fieldName, y);
+    var group = canvas.append('g').attr('id', idFrom(fieldName))
+    group.append('path')
       .datum(data)
       .attr('d', path);
+    group.append('text')
+      .attr('x', width-margin.left-margin.right)
+      .attr('y', y(data[data.length-1][fieldName])-margin.top)
+      .text(fieldName);
   };
 
 
@@ -129,20 +129,22 @@ requirejs(['d3', 'd3-jetpack'], () => {
       .split('\n')
       .filter(isValidLogLine)
       .map(parseCommitLine);
+
     drawBarChart(canvas, values);
 
     d3.csv('repo/lines.csv', (error, data) => {
       if (error) throw error;
 
-      drawPath(data, 'files');
-      drawPath(data, 'lines');
+      drawPath(data, 'Number of files');
+      drawPath(data, 'Number of lines');
 
       var lpf = data.map(d=> { return { date: d.date, linesPerFile: d.lines/d.files} });
       var maxLpf = maxOf(lpf, 'linesPerFile');
       var minLpf = minOf(lpf, 'linesPerFile');
       var yLpf = linearScale(maxLpf, minLpf);
       var lpfPath = makeSvgLine('linesPerFile', yLpf);
-      canvas.append('path.lpf')
+      canvas.append('path')
+        .attr('id', 'lpf')
         .datum(lpf)
         .attr('d', lpfPath);
     });
