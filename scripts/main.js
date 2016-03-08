@@ -41,30 +41,30 @@ require(['ramda', 'd3', 'd3-jetpack'], function(_, d3) {
 
     var xAxis = d3.svg.axis()
       .scale(xScale)
-      .orient("bottom")
-      .tickFormat(d3.time.format("%Y-%m"));
+      .orient('bottom')
+      .tickFormat(d3.time.format('%Y-%m'));
 
     var yAxis = d3.svg.axis()
       .scale(yScale)
-      .orient("left")
+      .orient('left')
       .ticks(10);
 
     canvas.append('g.axis')
         .translate([0, height])
         .call(xAxis)
-      .selectAll("text")
-        .style("text-anchor", "end")
-        .attr("dx", "-.8em")
-        .attr("dy", "-.55em")
-        .attr("transform", "rotate(-90)" );
+      .selectAll('text')
+        .style('text-anchor', 'end')
+        .attr('dx', '-.8em')
+        .attr('dy', '-.55em')
+        .attr('transform', 'rotate(-90)' );
 
-    canvas.append("g.axis")
+    canvas.append('g.axis')
         .call(yAxis)
-      .append("text")
-        .attr("transform", "rotate(-90)")
-        .attr("y", 6)
-        .attr("dy", ".71em")
-        .style("text-anchor", "end")
+      .append('text')
+        .attr('transform', 'rotate(-90)')
+        .attr('y', 6)
+        .attr('dy', '.71em')
+        .style('text-anchor', 'end')
         .text('commits');
   }
 
@@ -98,13 +98,13 @@ require(['ramda', 'd3', 'd3-jetpack'], function(_, d3) {
   // Functions to get the min or max of a specific field of an array of objects
   var minMax = (fun) => (array, field) => fun.apply(null, array.map(d=>d[field]));
   var maxOf = minMax(Math.max);
-  var minOf = minMax(Math.min);
+  // var minOf = minMax(Math.min);
 
   // generator of the d attribute of a <path>
   var makeSvgLine = (field, scale) => d3.svg.line()
     .x(d=>x(d3.time.format.iso.parse(d.date)))
     .y(d=>scale(d[field]))
-    .interpolate("basis");
+    .interpolate('basis');
 
   // create a path on the evolution of a field in a dataset
   var drawPath = function(data, fieldName, colour) {
