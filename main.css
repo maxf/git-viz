@@ -14,42 +14,7 @@ svg {
   fill: darkgrey;
 }
 
-#number_of_files {
-  stroke: red;
-}
-
-#number_of_files text {
-  fill: red;
-}
-
-#number_of_files path {
+.path {
   stroke-width: 2px;
   fill: none;
 }
-
-#number_of_lines {
-  stroke: steelblue;
-}
-
-#number_of_lines text {
-  fill: steelblue;
-}
-
-#number_of_lines path {
-  stroke-width: 2px;
-  fill: none;
-}
-
-#lines_per_file {
-  stroke: #555;
-}
-
-#lines_per_file text {
-  fill: #555;
-}
-
-#lines_per_file path {
-  stroke-width: 2px;
-  fill: none;
-}
-

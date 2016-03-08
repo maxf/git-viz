@@ -107,17 +107,20 @@ require(['ramda', 'd3', 'd3-jetpack'], function(_, d3) {
     .interpolate("basis");
 
   // create a path on the evolution of a field in a dataset
-  var drawPath = function(data, fieldName) {
+  var drawPath = function(data, fieldName, colour) {
     var y = linearScale(0, maxOf(data, fieldName));
     var path = makeSvgLine(fieldName, y);
-    var group = canvas.append('g').attr('id', idFrom(fieldName))
+    var group = canvas.append('g.path')
+      .attr('id', idFrom(fieldName));
     group.append('path')
       .datum(data)
-      .attr('d', path);
+      .attr('d', path)
+      .attr('stroke', colour);
     group.append('text')
       .attr('x', width-margin.left-margin.right)
       .attr('y', y(data[0][fieldName])-5)
-      .text(fieldName);
+      .text(fieldName)
+      .attr('fill', colour);
   };
 
 
@@ -134,10 +137,10 @@ require(['ramda', 'd3', 'd3-jetpack'], function(_, d3) {
 
     d3.csv('repo/lines.csv', (error, data) => {
       if (error) throw error;
-
-      drawPath(data, 'Number of files');
-      drawPath(data, 'Number of lines');
-      drawPath(data, 'Lines per file');
+      var pathColours = d3.scale.category10();
+      drawPath(data, 'Number of files', pathColours(0));
+      drawPath(data, 'Number of lines', pathColours(1));
+      drawPath(data, 'Lines per file', pathColours(2));
     });
   });
 });
