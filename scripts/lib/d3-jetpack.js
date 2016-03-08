@@ -1,5 +1,5 @@
 (function() {
-        
+
     function jetpack(d3) {
         d3.selection.prototype.translate = function(xy) {
             return this.attr('transform', function(d,i) {
@@ -23,7 +23,7 @@
                 .attr('dy', function(d,i) { return i ? lh || 15 : 0; });
         };
 
-        d3.selection.prototype.append = 
+        d3.selection.prototype.append =
         d3.selection.enter.prototype.append = function(name) {
             var n = d3_parse_attributes(name), s;
             //console.log(name, n);
@@ -35,7 +35,7 @@
             return n.attr ? s.attr(n.attr) : s;
         };
 
-        d3.selection.prototype.insert = 
+        d3.selection.prototype.insert =
         d3.selection.enter.prototype.insert = function(name, before) {
             var n = d3_parse_attributes(name), s;
             name = n.attr ? n.tag : name;
@@ -97,7 +97,7 @@
             }
             return lines;
         };
-        
+
         d3.ascendingKey = function(key) {
             return typeof key == 'function' ? function (a, b) {
                   return key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : key(a) >= key(b) ? 0 : NaN;
@@ -113,7 +113,7 @@
                 return b[key] < a[key] ? -1 : b[key] > a[key] ? 1 : b[key] >= a[key] ? 0 : NaN;
             };
         };
-        
+
         d3.f = function(){
             var functions = arguments;
             //convert all string arguments into field accessors
@@ -133,7 +133,7 @@
         };
         // store d3.f as convenient unicode character function (alt-f on macs)
         if (!window.hasOwnProperty('ƒ')) window.ƒ = d3.f;
-        
+
         // this tweak allows setting a listener for multiple events, jquery style
         var d3_selection_on = d3.selection.prototype.on;
         d3.selection.prototype.on = function(type, listener, capture) {
@@ -147,14 +147,14 @@
             }
             return this;
         };
-        
+
         // for everyone's sake, let's add prop as alias for property
         d3.selection.prototype.prop = d3.selection.prototype.property;
     }
 
     if (typeof d3 === 'object' && d3.version) jetpack(d3);
     else if (typeof define === 'function' && define.amd) {
-        define(['d3'], jetpack);
+      define(['lib/d3'], jetpack);
     }
 
 })();

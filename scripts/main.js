@@ -1,20 +1,20 @@
-require(['ramda', 'd3', 'd3-jetpack'], function(_, d3) {
+require(['lib/ramda', 'lib/d3', 'lib/d3-jetpack'], function(_, d3) {
 
   var margin = {top: 40, right: 40, bottom: 40, left:40};
   var width = 800, height = 400;
   var numberOfBins = 60;
 
-  var x;
+  var x, xi;
 
   var timeScale = (minDate, maxDate) =>
     d3.time.scale()
       .domain([minDate, d3.time.day.offset(maxDate, 1)])
-      .rangeRound([0, width - margin.left - margin.right]);
+      .rangeRound([0, width]);
 
   var linearScale = (min, max) =>
-      d3.scale.linear()
-        .domain([min, max])
-        .range([height, 0]);
+    d3.scale.linear()
+      .domain([min, max])
+      .range([height, 0]);
 
  var logLineRegexp = /^([0-9a-f]{7})\|([^|]+)\|([^|].+)$/;
 
@@ -32,10 +32,6 @@ require(['ramda', 'd3', 'd3-jetpack'], function(_, d3) {
     .attr('width', width)
     .attr('height', height)
     .translate([margin.left, margin.top]);
-  canvas.append('rect')
-      .attr('id', 'frame')
-      .attr('width', width)
-      .attr('height', height);
 
   function drawAxes(xScale, yScale, canvas, height) {
 
@@ -50,8 +46,8 @@ require(['ramda', 'd3', 'd3-jetpack'], function(_, d3) {
       .ticks(10);
 
     canvas.append('g.axis')
-        .translate([0, height])
-        .call(xAxis)
+      .translate([0, height])
+      .call(xAxis)
       .selectAll('text')
         .style('text-anchor', 'end')
         .attr('dx', '-.8em')
@@ -59,7 +55,7 @@ require(['ramda', 'd3', 'd3-jetpack'], function(_, d3) {
         .attr('transform', 'rotate(-90)' );
 
     canvas.append('g.axis')
-        .call(yAxis)
+      .call(yAxis)
       .append('text')
         .attr('transform', 'rotate(-90)')
         .attr('y', 6)
@@ -72,13 +68,13 @@ require(['ramda', 'd3', 'd3-jetpack'], function(_, d3) {
     var startTime = values[values.length - 1];
     var endTime = values[0];
     x = timeScale(startTime, endTime);
+    xi = x.invert;
     var data = d3.layout.histogram()
       .bins(x.ticks(numberOfBins))
       (values);
     var maxCommitsPerBin = Math.max.apply(null, data.map(bin => bin.length));
     var y = linearScale(0, maxCommitsPerBin);
     var barWidth = x(data[0].dx) - x(0) + 1;
-    //    var barWidth = 1 + (x(endTime.getTime()) - x(startTime.getTime())) / (numberOfBins * 2);
     var bar = canvas.selectAll('.bar')
       .data(data)
       .enter()
@@ -102,45 +98,112 @@ require(['ramda', 'd3', 'd3-jetpack'], function(_, d3) {
 
   // generator of the d attribute of a <path>
   var makeSvgLine = (field, scale) => d3.svg.line()
-    .x(d=>x(d3.time.format.iso.parse(d.date)))
+    .x(d=>x(d.date))
     .y(d=>scale(d[field]))
     .interpolate('basis');
 
+  var dispatch = d3.dispatch('mousemove', 'mouseover', 'mouseout');
+
+
   // create a path on the evolution of a field in a dataset
   var drawPath = function(data, fieldName, colour) {
+    var id=idFrom(fieldName);
     var y = linearScale(0, maxOf(data, fieldName));
     var path = makeSvgLine(fieldName, y);
     var group = canvas.append('g.path')
-      .attr('id', idFrom(fieldName));
+      .attr('id', id);
     group.append('path')
       .datum(data)
       .attr('d', path)
       .attr('stroke', colour);
     group.append('text')
-      .attr('x', width-margin.left-margin.right)
-      .attr('y', y(data[0][fieldName])-5)
+      .attr('x', width)
+      .attr('y', y(data[data.length-1][fieldName])-5)
       .text(fieldName)
       .attr('fill', colour);
+    var c = group.append('circle.selection')
+      .attr('cx', 0)
+      .attr('cy', 0)
+      .attr('r', 5)
+      .attr('fill', colour);
+
+    dispatch.on("mousemove."+id, (xcoord, di) => {
+      c.attr('cx', xcoord);
+      c.attr('cy', y(di[fieldName]));
+    });
+    dispatch.on("mouseover."+id, () => { c.attr('visibility', 'visible') });
+    dispatch.on("mouseout."+id, () => { c.attr('visibility', 'hidden') });
   };
 
+  var bisectDate = d3.bisector(function(d) { return d.date; }).left;
 
-  // Start reading the files
+  var mouseMove = function(data, cursor) {
+    return function() {
+      var mouseCoords = d3.mouse(this);
+      var xCoord = mouseCoords[0];
+      cursor
+        .attr('x1', xCoord)
+        .attr('x2', xCoord);
+      var i = bisectDate(data, xi(xCoord));
+      dispatch.mousemove(xCoord, data[i]);
+    }
+  }
 
-  d3.text('repo/log.txt', (error, text) => {
-    if (error) throw error;
-    var values = text
-      .split('\n')
-      .filter(isValidLogLine)
-      .map(parseCommitLine);
+  var mouseOver = function(cursor) {
+    return function() {
+      cursor.attr('visibility', 'visible');
+      dispatch.mouseover();
+    }
+  }
 
-    drawBarChart(canvas, values);
+  var mouseOut = function(cursor) {
+    return function() {
+      cursor.attr('visibility', 'hidden');
+      dispatch.mouseout();
+    }
+  }
 
-    d3.csv('repo/lines.csv', (error, data) => {
+  var main = function() {
+    d3.text('repo/log.txt', (error, text) => {
       if (error) throw error;
-      var pathColours = d3.scale.category10();
-      drawPath(data, 'Number of files', pathColours(0));
-      drawPath(data, 'Number of lines', pathColours(1));
-      drawPath(data, 'Lines per file', pathColours(2));
+      var values = text
+        .split('\n')
+        .filter(isValidLogLine)
+        .map(parseCommitLine);
+
+      drawBarChart(canvas, values);
+
+
+      d3.csv('repo/lines.csv', (error, data) => {
+        if (error) throw error;
+
+        data = data.map(d => { d.date = d3.time.format.iso.parse(d.date); return d; });
+        data.sort((a,b) => a.date > b.date);
+
+        var cursor = canvas.append('line.cursor').attr('y2', height);
+
+        var pathColours = d3.scale.category10();
+        drawPath(data, 'Number of files', pathColours(0));
+        drawPath(data, 'Number of lines', pathColours(1));
+        drawPath(data, 'Lines per file', pathColours(2));
+
+        // Add an overlay to receive mouse events
+        canvas.append('rect')
+            .attr('width', width)
+            .attr('height', height)
+            .attr('opacity', 0)
+            .on('mousemove', mouseMove(data, cursor))
+            .on('mouseover', mouseOver(cursor))
+            .on('mouseout', mouseOut(cursor));
+      });
     });
-  });
+  }
+
+
+
+
+
+
+  main();
+
 });

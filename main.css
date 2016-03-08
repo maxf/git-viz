@@ -18,3 +18,8 @@ svg {
   stroke-width: 2px;
   fill: none;
 }
+
+.cursor {
+  stroke: black;
+  stroke-width: .2px;
+}
