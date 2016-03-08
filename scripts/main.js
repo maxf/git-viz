@@ -116,7 +116,7 @@ require(['ramda', 'd3', 'd3-jetpack'], function(_, d3) {
       .attr('d', path);
     group.append('text')
       .attr('x', width-margin.left-margin.right)
-      .attr('y', y(data[data.length-1][fieldName])-margin.top)
+      .attr('y', y(data[0][fieldName])-5)
       .text(fieldName);
   };
 
