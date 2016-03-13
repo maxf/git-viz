@@ -1,5 +1,4 @@
-require(['lib/ramda', 'lib/d3', 'lib/d3-jetpack'], function(_, d3) {
-
+(function() {
   var margin = {top: 40, right: 40, bottom: 40, left:40};
   var width = 800, height = 400;
   var numberOfBins = 60;
@@ -200,10 +199,6 @@ require(['lib/ramda', 'lib/d3', 'lib/d3-jetpack'], function(_, d3) {
   }
 
 
-
-
-
-
   main();
 
-});
+}());
