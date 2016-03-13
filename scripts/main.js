@@ -120,18 +120,17 @@
       .attr('y', y(data[data.length-1][fieldName])-5)
       .text(fieldName)
       .attr('fill', colour);
-    var c = group.append('circle.selection')
-      .attr('cx', 0)
-      .attr('cy', 0)
-      .attr('r', 5)
-      .attr('fill', colour);
+    var cursor = group.append('g').attr('fill', colour);
+    var cursorMarker = cursor.append('circle').attr('r', 5)
+    var cursorText = cursor.append('text').translate([5, 15]);
 
-    dispatch.on("mousemove."+id, (xcoord, di) => {
-      c.attr('cx', xcoord);
-      c.attr('cy', y(di[fieldName]));
+    dispatch.on("mousemove." + id, (xcoord, di) => {
+      var ycoord = y(di[fieldName]);
+      cursor.translate([xcoord, ycoord]);
+      cursorText.text(di[fieldName]);
     });
-    dispatch.on("mouseover."+id, () => { c.attr('visibility', 'visible') });
-    dispatch.on("mouseout."+id, () => { c.attr('visibility', 'hidden') });
+    dispatch.on("mouseover."+id, () => { cursor.attr('visibility', 'visible') });
+    dispatch.on("mouseout."+id, () => { cursor.attr('visibility', 'hidden') });
   };
 
   var bisectDate = d3.bisector(function(d) { return d.date; }).left;
