@@ -1,5 +1,5 @@
 (function() {
-  var margin = {top: 40, right: 40, bottom: 40, left:40};
+  var margin = {top: 80, right: 40, bottom: 40, left:40};
   var width = 800, height = 400;
   var numberOfBins = 60;
 
@@ -33,6 +33,10 @@
     .attr('width', width)
     .attr('height', height)
     .translate([margin.left, margin.top]);
+
+  var message = d3.select('#canvas')
+    .append('text')
+    .attr('x', margin.left).attr('y', margin.top/2);
 
   function drawAxes(xScale, yScale, canvas, height) {
 
@@ -124,8 +128,8 @@
       .attr('y', y(data[data.length-1][fieldName])-5)
       .text(fieldName)
       .attr('fill', colour);
-    var cursor = group.append('g').attr('fill', colour);
-    var cursorMarker = cursor.append('circle').attr('r', 5)
+    var cursor = group.append('g').attr('fill', colour).attr('visibility', 'hidden');
+    var cursorMarker = cursor.append('circle').attr('r', 5);
     var cursorText = cursor.append('text').translate([5, 15]);
 
     dispatch.on("mousemove." + id, (xcoord, di) => {
@@ -143,10 +147,11 @@
     return function() {
       var mouseCoords = d3.mouse(this);
       var xCoord = mouseCoords[0];
+      var i = bisectDate(data, xi(xCoord));
       cursor
         .attr('x1', xCoord)
         .attr('x2', xCoord);
-      var i = bisectDate(data, xi(xCoord));
+      message.text(data[i].message);
       dispatch.mousemove(xCoord, data[i]);
     }
   }
