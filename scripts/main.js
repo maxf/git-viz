@@ -12,10 +12,10 @@
       .domain([minDate, d3.time.day.offset(maxDate, 1)])
       .rangeRound([0, width]);
 
-  var linearScale = (min, max) =>
+ var linearScale = (dmin, dmax, rmin, rmax) =>
     d3.scale.linear()
-      .domain([min, max])
-      .range([height, 0]);
+      .domain([dmin, dmax])
+      .range([rmin, rmax]);
 
  var logLineRegexp = /^([0-9a-f]{7})\|([^|]+)\|([^|].+)$/;
 
@@ -78,7 +78,7 @@
       .bins(x.ticks(numberOfBins))
       (values);
     var maxCommitsPerBin = Math.max.apply(null, data.map(bin => bin.length));
-    var y = linearScale(0, maxCommitsPerBin);
+    var y = linearScale(0, maxCommitsPerBin, height, 0);
     var barWidth = x(data[0].dx) - x(0) + 1;
     var bar = canvas.selectAll('.bar')
       .data(data)
@@ -99,7 +99,7 @@
   // Functions to get the min or max of a specific field of an array of objects
   var minMax = (fun) => (array, field) => fun.apply(null, array.map(d=>d[field]));
   var maxOf = minMax(Math.max);
-  // var minOf = minMax(Math.min);
+  var minOf = minMax(Math.min);
 
 
 
@@ -107,15 +107,15 @@
   var makeSvgLine = (field, scale) => d3.svg.line()
     .x(d=>x(d.date))
     .y(d=>scale(d[field]))
-    .interpolate('basis');
+    .interpolate('step-before');
 
   var dispatch = d3.dispatch('mousemove', 'mouseover', 'mouseout');
 
 
   // create a path on the evolution of a field in a dataset
-  var drawPath = function(data, fieldName, colour) {
+  var drawPath = function(data, fieldName, colour, ymin, ymax) {
     var id=idFrom(fieldName);
-    var y = linearScale(0, maxOf(data, fieldName));
+    var y = linearScale(minOf(data, fieldName), maxOf(data, fieldName), ymin, ymax);
     var path = makeSvgLine(fieldName, y);
     var group = canvas.append('g.path')
       .attr('id', id);
@@ -190,9 +190,9 @@
         var cursor = canvas.append('line.cursor').attr('y2', height);
 
         var pathColours = d3.scale.category10();
-        drawPath(data, 'Number of files', pathColours(0));
-        drawPath(data, 'Number of lines', pathColours(1));
-        drawPath(data, 'Lines per file', pathColours(2));
+        drawPath(data, 'Number of files', pathColours(0), 100,   0);
+        drawPath(data, 'Number of lines', pathColours(1), 250, 150);
+        drawPath(data, 'Lines per file',  pathColours(2), 400, 300);
 
         // Add an overlay to receive mouse events
         canvas.append('rect')
