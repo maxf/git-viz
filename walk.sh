@@ -24,3 +24,5 @@ while [ $? -eq 0 ]; do
     git reset --hard "HEAD~" > /dev/null 2>&1
     # Note: for things like code quality measurement, skipping commits makes sense (HEAD~4) and is much faster
 done
+
+git reset --hard HEAD > /dev/null 2>&1
