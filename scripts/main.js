@@ -5,6 +5,8 @@
 
   var x, xi;
 
+  var timeParse = d3.time.format.utc('%Y-%m-%d %H:%M:%S %Z').parse;
+
   var timeScale = (minDate, maxDate) =>
     d3.time.scale()
       .domain([minDate, d3.time.day.offset(maxDate, 1)])
@@ -19,7 +21,7 @@
 
   function parseCommitLine(text) {
     var fields = text.match(logLineRegexp);
-    return d3.time.format.iso.parse(fields[2]);
+    return timeParse(fields[2]);
   }
 
   function isValidLogLine(line) {
@@ -94,6 +96,8 @@
   var minMax = (fun) => (array, field) => fun.apply(null, array.map(d=>d[field]));
   var maxOf = minMax(Math.max);
   // var minOf = minMax(Math.min);
+
+
 
   // generator of the d attribute of a <path>
   var makeSvgLine = (field, scale) => d3.svg.line()
@@ -175,8 +179,8 @@
       d3.csv('repo/lines.csv', (error, data) => {
         if (error) throw error;
 
-        data = data.map(d => { d.date = d3.time.format.iso.parse(d.date); return d; });
-        data.sort((a,b) => a.date > b.date);
+        data = data.map(d => { d.date = timeParse(d.date); return d; });
+        data.sort((a,b) => a.date.getTime() - b.date.getTime());
 
         var cursor = canvas.append('line.cursor').attr('y2', height);
 

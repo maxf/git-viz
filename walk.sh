@@ -8,7 +8,7 @@ echo "date,hash,Number of files,Number of lines,Lines per file"
 
 while [ $? -eq 0 ]; do
     SHA=`git rev-parse HEAD`
-    DATE=`git show -s --format=%ad --date=iso8601-strict`
+    DATE=`git show -s --format=%ad --date=iso8601`
     FILES=`find . -type f`
     if [ -z "$FILES" ]; then
         NUM_FILES=0
