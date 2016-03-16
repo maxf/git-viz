@@ -189,12 +189,12 @@
 
       // Add an overlay to receive mouse events
       canvas.append('rect')
-          .attr('width', width)
-          .attr('height', height)
-          .attr('opacity', 0)
-          .on('mousemove', mouseMove(data, cursor))
-          .on('mouseover', mouseOver(cursor))
-          .on('mouseout', mouseOut(cursor));
+        .attr('width', width)
+        .attr('height', height)
+        .attr('opacity', 0)
+        .on('mousemove', mouseMove(data, cursor))
+        .on('mouseover', mouseOver(cursor))
+        .on('mouseout', mouseOut(cursor));
     });
   }
 
