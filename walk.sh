@@ -1,7 +1,7 @@
 #!/bin/bash
 
 function escape {
-  local s1=`echo "$1" | sed -e 's/"/\\"/'`
+  local s1=`echo "$1" | sed -e 's/\"/\"\"/g'`
   echo \"$s1\"
 }
 
