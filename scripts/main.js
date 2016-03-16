@@ -70,8 +70,8 @@
   }
 
   function drawBarChart(canvas, values) {
-    var startTime = values[values.length - 1];
-    var endTime = values[0];
+    var startTime = values[0];
+    var endTime = values[values.length-1];
     x = timeScale(startTime, endTime);
     xi = x.invert;
     var data = d3.layout.histogram()
@@ -171,38 +171,30 @@
   }
 
   var main = function() {
-    d3.text('repo/log.txt', (error, text) => {
+
+    d3.csv('repo/lines.csv', (error, data) => {
       if (error) throw error;
-      var values = text
-        .split('\n')
-        .filter(isValidLogLine)
-        .map(parseCommitLine);
+      data = data.map(d => { d.date = timeParse(d.date); return d; });
+      data.sort((a,b) => a.date.getTime() - b.date.getTime());
 
-      drawBarChart(canvas, values);
+      var dates = data.map(line => line.date);
+      drawBarChart(canvas, dates);
 
+      var cursor = canvas.append('line.cursor').attr('y2', height);
 
-      d3.csv('repo/lines.csv', (error, data) => {
-        if (error) throw error;
+      var pathColours = d3.scale.category10();
+      drawPath(data, 'Number of files', pathColours(0), 100,   0);
+      drawPath(data, 'Number of lines', pathColours(1), 250, 150);
+      drawPath(data, 'Lines per file',  pathColours(2), 400, 300);
 
-        data = data.map(d => { d.date = timeParse(d.date); return d; });
-        data.sort((a,b) => a.date.getTime() - b.date.getTime());
-
-        var cursor = canvas.append('line.cursor').attr('y2', height);
-
-        var pathColours = d3.scale.category10();
-        drawPath(data, 'Number of files', pathColours(0), 100,   0);
-        drawPath(data, 'Number of lines', pathColours(1), 250, 150);
-        drawPath(data, 'Lines per file',  pathColours(2), 400, 300);
-
-        // Add an overlay to receive mouse events
-        canvas.append('rect')
-            .attr('width', width)
-            .attr('height', height)
-            .attr('opacity', 0)
-            .on('mousemove', mouseMove(data, cursor))
-            .on('mouseover', mouseOver(cursor))
-            .on('mouseout', mouseOut(cursor));
-      });
+      // Add an overlay to receive mouse events
+      canvas.append('rect')
+          .attr('width', width)
+          .attr('height', height)
+          .attr('opacity', 0)
+          .on('mousemove', mouseMove(data, cursor))
+          .on('mouseover', mouseOver(cursor))
+          .on('mouseout', mouseOut(cursor));
     });
   }
 
