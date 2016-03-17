@@ -8,8 +8,9 @@ svg {
   fill: transparent;
 }
 
-.axis {
-  fill: black;
+.axis path {
+  stroke: black;
+  fill: none;
 }
 
 .bar {
