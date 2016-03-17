@@ -38,7 +38,7 @@
     .append('text')
     .attr('x', margin.left).attr('y', margin.top/2);
 
-  function drawAxes(xScale, yScale, canvas, height) {
+  function drawAxes(xScale, yScale, canvas, height, xLabel, yLabel) {
 
     var xAxis = d3.svg.axis()
       .scale(xScale)
@@ -50,23 +50,33 @@
       .orient('left')
       .ticks(10);
 
-    canvas.append('g.axis')
+    var svgXAxis = canvas.append('g.axis')
       .translate([0, height])
-      .call(xAxis)
-      .selectAll('text')
+      .call(xAxis);
+
+    svgXAxis.selectAll('text')
         .style('text-anchor', 'end')
         .attr('dx', '-.8em')
         .attr('dy', '-.55em')
         .attr('transform', 'rotate(-90)' );
 
-    canvas.append('g.axis')
-      .call(yAxis)
-      .append('text')
+    if (yLabel) {
+      svgXAxis.append('text')
+        .attr('x', 10).attr('y', -2)
+        .text(yLabel);
+    }
+
+    var svgYAxis = canvas.append('g.axis')
+      .call(yAxis);
+
+    if (yLabel) {
+      svgYAxis.append('text')
         .attr('transform', 'rotate(-90)')
         .attr('y', 6)
         .attr('dy', '.71em')
         .style('text-anchor', 'end')
-        .text('commits');
+        .text(xLabel);
+    }
   }
 
   function drawBarChart(canvas, values) {
@@ -80,6 +90,7 @@
     var maxCommitsPerBin = Math.max.apply(null, data.map(bin => bin.length));
     var y = linearScale(0, maxCommitsPerBin, height, 0);
     var barWidth = x(data[0].dx) - x(0) + 1;
+    var barWidthInDays = data[0].dx / 86400000;
     var bar = canvas.selectAll('.bar')
       .data(data)
       .enter()
@@ -89,7 +100,7 @@
       .attr('x', 1)
       .attr('width', barWidth)
       .attr('height', d => height - y(d.y));
-    drawAxes(x, y, canvas, height);
+    drawAxes(x, y, canvas, height, 'commits', `bar width: ${barWidthInDays.toFixed()} days`);
   }
 
 
