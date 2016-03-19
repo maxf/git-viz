@@ -1,16 +1,4 @@
-
-var exec = require('child_process').exec;
+const exec = require('child_process').execFileSync;
 var path = process.argv[2];
-var err = process.stderr;
-var out = process.stdout;
 
-var cb  = (error, stdout, stderr) => {
-  if (error) {
-    err.write(error.message);
-  } else {
-    out.write(stdout);
-  }
-}
-
-
-var ret = exec("ls", {cwd: path}, cb);
+console.log(exec('ls', {cwd: path}).toString());
