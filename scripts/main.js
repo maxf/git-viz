@@ -80,10 +80,6 @@
   }
 
   function drawBarChart(canvas, values) {
-    var startTime = values[0];
-    var endTime = values[values.length-1];
-    x = timeScale(startTime, endTime);
-    xi = x.invert;
     var data = d3.layout.histogram()
       .bins(x.ticks(numberOfBins))
       (values);
@@ -189,6 +185,10 @@
       data.sort((a,b) => a.date.getTime() - b.date.getTime());
 
       var dates = data.map(line => line.date);
+      var startTime = dates[0];
+      var endTime = dates[dates.length-1];
+      x = timeScale(startTime, endTime);
+      xi = x.invert;
       drawBarChart(canvas, dates);
 
       var cursor = canvas.append('line.cursor').attr('y2', height);
