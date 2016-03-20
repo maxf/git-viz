@@ -10,6 +10,14 @@ function run(command, args, stdio) {
   }).toString();
 }
 
+function csvEscape(value) {
+  return `"${value.toString().replace(/\n+/g, ' ').trim().replace(/"/g,'""')}"`;
+}
+
+function csvLine(arr) {
+  return arr.map(str => csvEscape(str)).join(',');
+}
+
 run('git', ['reset', '--hard', 'HEAD']);
 run('git', ['pull']);
 
@@ -27,22 +35,26 @@ fca.sort((a,b) => a.code < b.code);
 fca.splice(5);
 
 
-console.log(fca.map(e => e.langName));
+fileTypes = fca.map(e => e.langName);
 
+console.log(csvLine(['date', 'message', 'Number of files','Number of lines'].concat(fileTypes)));
 
-// console.log('date,message,Number of files,Number of lines,Lines per file');
+do {
+  message = run('git', ['log', '--format=%B', '-n', '1', 'HEAD']).replace(/\n/g,' ');
+  date = run('git', ['show', '-s', '--format=%ad', '--date=iso8601']);
+  cloc = JSON.parse(run('cloc', ['.', '--json']));
+  numFiles = cloc.SUM.nFiles;
+  numLines = cloc.SUM.code;
+  lineCounts = fileTypes.map(type => cloc[type].code)
 
-// do {
-//   message = run('git', ['log', '--format=%B', '-n', '1', 'HEAD']);
-//   date = run('git', ['show', '-s', '--format=%ad', '--date=iso8601']);
-//   cloc = JSON.parse(run('cloc', ['.', '--json']));
-//   console.log(date, message, cloc);
-//   try {
-//     run('git', ['reset', '--hard', 'HEAD~'], 'ignore');
-//   } catch (e) {
-//     console.log("EXCEPT");
-//     finished = e;
-//   }
-// } while(!finished);
+  console.log(csvLine([date, message, numFiles, numLines].concat(lineCounts)));
 
-// run('git', ['reset', '--hard', 'HEAD']);
+  try {
+    run('git', ['reset', '--hard', 'HEAD~'], 'ignore');
+  } catch (e) {
+    console.log("EXCEPT");
+    finished = e;
+  }
+} while (!finished);
+
+run('git', ['reset', '--hard', 'HEAD']);
