@@ -177,6 +177,15 @@
     }
   }
 
+  var drawStacked = function(data, max, colours, ymin, ymax) {
+    for (let i=0; i<=max; i++) {
+      let label = Object.keys(data[0]).find(e => e.startsWith(i+' - '));
+      let lang = label.replace(/^\d+ - /, '');
+      drawPath(data, label, colours(i), ymin, ymax);
+    }
+  }
+
+
   var main = function() {
 
     d3.csv('repo/lines.csv', (error, data) => {
@@ -196,11 +205,9 @@
       var pathColours = d3.scale.category10();
       drawPath(data, 'Number of files', pathColours(0), 100,   0);
       drawPath(data, 'Number of lines', pathColours(1), 250, 150);
-      drawPath(data, 'Python',  pathColours(2), 400, 300);
-      drawPath(data, 'HTML',  pathColours(3), 400, 300);
-      drawPath(data, 'SASS',  pathColours(4), 400, 300);
-      drawPath(data, 'JavaScript',  pathColours(5), 400, 300);
-      drawPath(data, 'JSON',  pathColours(6), 400, 300);
+
+
+      drawStacked(data, 4, pathColours, 400, 300);
 
       // Add an overlay to receive mouse events
       canvas.append('rect')

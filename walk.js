@@ -37,7 +37,7 @@ fca.splice(5);
 
 fileTypes = fca.map(e => e.langName);
 
-console.log(csvLine(['date', 'message', 'Number of files','Number of lines'].concat(fileTypes)));
+console.log(csvLine(['date', 'message', 'Number of files','Number of lines'].concat(fileTypes.map((e,i) => i+' - '+e))));
 
 do {
   message = run('git', ['log', '--format=%B', '-n', '1', 'HEAD']).replace(/\n/g,' ');
