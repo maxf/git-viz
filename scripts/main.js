@@ -11,9 +11,8 @@
     d3.scale.linear()
       .domain([dmin, dmax])
       .range([rmin, rmax]);
-  const logLineRegexp = /^([0-9a-f]{7})\|([^|]+)\|([^|].+)$/;
-  const parseCommitLine = text => timeParse(text.match(logLineRegexp)[2]);
-  const isValidLogLine = line => logLineRegexp.test(line);
+
+//  const RD = new RepositoryData();
 
   const canvas = d3.select('#canvas')
     .append('g')
@@ -68,7 +67,7 @@
   };
 
 
-  const drawBarChart = (canvas, x, values) => {
+  const drawBarChart = (canvas, x, values, height) => {
     const data = d3.layout.histogram()
       .bins(x.ticks(numberOfBins))
       (values);
@@ -186,7 +185,7 @@
       const endTime = dates[dates.length-1];
       const x = timeScale(startTime, endTime);
       const xi = x.invert;
-      drawBarChart(canvas, x, dates);
+      drawBarChart(canvas, x, dates, height);
 
       const cursor = canvas.append('line.cursor').attr('y2', height);
 
