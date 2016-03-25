@@ -1,9 +1,7 @@
 (function() {
-  const margin = {top: 80, right: 40, bottom: 40, left:40};
-  const width = 800, height = 400;
-  const numberOfBins = 60;
+  'use strict';
   const timeParse = d3.time.format.utc('%Y-%m-%d %H:%M:%S %Z').parse;
-  const timeScale = (minDate, maxDate) =>
+  const timeScale = (minDate, maxDate, width) =>
     d3.time.scale()
       .domain([minDate, d3.time.day.offset(maxDate, 1)])
       .rangeRound([0, width]);
@@ -12,20 +10,7 @@
       .domain([dmin, dmax])
       .range([rmin, rmax]);
 
-//  const RD = new RepositoryData();
-
-  const canvas = d3.select('#canvas')
-    .append('g')
-    .attr('width', width)
-    .attr('height', height)
-    .translate([margin.left, margin.top]);
-
-  const message = d3.select('#canvas')
-    .append('text')
-    .attr('x', margin.left).attr('y', margin.top/2);
-
-
-  const drawAxes = (xScale, yScale, canvas, height, xLabel, yLabel) => {
+  const drawAxes = (xScale, yScale, ctx, height, xLabel, yLabel) => {
 
     const xAxis = d3.svg.axis()
       .scale(xScale)
@@ -37,7 +22,7 @@
       .orient('left')
       .ticks(10);
 
-    const svgXAxis = canvas.append('g.axis')
+    const svgXAxis = ctx.canvas.append('g.axis')
       .translate([0, height])
       .call(xAxis);
 
@@ -53,7 +38,7 @@
         .text(yLabel);
     }
 
-    const svgYAxis = canvas.append('g.axis')
+    const svgYAxis = ctx.canvas.append('g.axis')
       .call(yAxis);
 
     if (yLabel) {
@@ -67,15 +52,17 @@
   };
 
 
-  const drawBarChart = (canvas, x, values, height) => {
+  const drawBarChart = (commits, ctx, x, settings) => {
+    const values = commits.map(line => line.date);
+
     const data = d3.layout.histogram()
-      .bins(x.ticks(numberOfBins))
+      .bins(x.ticks(settings.numberOfBins))
       (values);
     const maxCommitsPerBin = Math.max.apply(null, data.map(bin => bin.length));
-    const y = linearScale(0, maxCommitsPerBin, height, 0);
+    const y = linearScale(0, maxCommitsPerBin, settings.height, 0);
     const barWidth = x(data[0].dx) - x(0) + 1;
     const barWidthInDays = data[0].dx / 86400000;
-    const bar = canvas.selectAll('.bar')
+    const bar = ctx.canvas.selectAll('.bar')
       .data(data)
       .enter()
       .append('g.bar')
@@ -83,10 +70,9 @@
     bar.append('rect')
       .attr('x', 1)
       .attr('width', barWidth)
-      .attr('height', d => height - y(d.y));
-    drawAxes(x, y, canvas, height, 'commits', `bar width: ${barWidthInDays.toFixed()} days`);
+      .attr('height', d => settings.height - y(d.y));
+    drawAxes(x, y, ctx, settings.height, 'commits', `bar width: ${barWidthInDays.toFixed()} days`);
   }
-
 
   // make an identifier from any string
   const idFrom = str => str.replace(/[^\w]/g, '_').toLowerCase();
@@ -96,8 +82,6 @@
   const maxOf = minMax(Math.max);
   const minOf = minMax(Math.min);
 
-
-
   // generator of the d attribute of a <path>
   const makeSvgLine = (field, scale, x) => d3.svg.line()
     .x(d=>x(d.date))
@@ -106,13 +90,13 @@
 
   const dispatch = d3.dispatch('mousemove', 'mouseover', 'mouseout');
 
-
   // create a path on the evolution of a field in a dataset
-  const drawPath = (data, fieldName, colour, ymin, ymax, x) => {
-    const id=idFrom(fieldName);
+  const drawPath = (data, ctx, fieldName, colourIndex, ymin, ymax, x, width, dispatch) => {
+    const id = idFrom(fieldName);
     const y = linearScale(minOf(data, fieldName), maxOf(data, fieldName), ymin, ymax);
     const path = makeSvgLine(fieldName, y, x);
-    const group = canvas.append('g.path')
+    const colour = ctx.colours(colourIndex);
+    const group = ctx.canvas.append('g.path')
       .attr('id', id);
     group.append('path')
       .datum(data)
@@ -138,73 +122,91 @@
 
   const bisectDate = d3.bisector(function(d) { return d.date; }).left;
 
-  const mouseMove = (data, xi, cursor, eventZone) =>
+  const mouseMove = (data, xi, ctx, dispatch) =>
     () => {
-      var mouseCoords = d3.mouse(eventZone[0][0]); // FIXME
+      var mouseCoords = d3.mouse(ctx.eventZone.node());
       var xCoord = mouseCoords[0];
       var i = bisectDate(data, xi(xCoord));
-      cursor
+      ctx.cursor
         .attr('x1', xCoord)
         .attr('x2', xCoord);
-      message.text(data[i].message);
+      ctx.message.text(data[i].message);
       dispatch.mousemove(xCoord, data[i]);
     };
 
-
-  const mouseOver = cursor =>
+  const mouseOver = (ctx, dispatch) =>
     () => {
-      cursor.attr('visibility', 'visible');
+      ctx.cursor.attr('visibility', 'visible');
       dispatch.mouseover();
     };
 
-
-  const mouseOut = cursor =>
+  const mouseOut = (ctx, dispatch) =>
     () => {
-      cursor.attr('visibility', 'hidden');
+      ctx.cursor.attr('visibility', 'hidden');
       dispatch.mouseout();
     };
 
-  const drawStacked = (data, max, colours, ymin, ymax, x) => {
+  const drawStacked = (data, canvas, max, ymin, ymax, x, width, dispatch) => {
     for (let i=0; i<=max; i++) {
       let label = Object.keys(data[0]).find(e => e.startsWith(i+' - '));
-      let lang = label.replace(/^\d+ - /, '');
-      drawPath(data, label, colours(i), ymin, ymax, x);
+      drawPath(data, canvas, label, i, ymin, ymax, x, width, dispatch);
     }
   }
 
+  const buildGfxContext = (settings) => {
+    const canvas = d3.select('#canvas')
+      .append('g')
+      .attr('width', settings.width)
+      .attr('height', settings.height)
+      .translate([settings.margin.left, settings.margin.top]);
+
+    const message = d3.select('#canvas')
+      .append('text')
+      .attr('x', settings.margin.left).attr('y', settings.margin.top/2);
+
+    const cursor = canvas.append('line.cursor').attr('y2', settings.height);
+
+    const eventZone = null;
+
+    const colours = d3.scale.category10();
+
+    return { canvas: canvas, message: message, cursor: cursor, eventZone: eventZone, colours: colours };
+  }
 
   const main = () => {
+    const settings = {
+      margin: {top: 80, right: 40, bottom: 40, left:40},
+      width: 800,
+      height: 400,
+      numberOfBins: 60
+    }
+
+    const ctx = buildGfxContext(settings);
 
     d3.csv('repo/lines.csv', (error, data) => {
       if (error) throw error;
       data = data.map(d => { d.date = timeParse(d.date); return d; });
       data.sort((a,b) => a.date.getTime() - b.date.getTime());
 
-      const dates = data.map(line => line.date);
-      const startTime = dates[0];
-      const endTime = dates[dates.length-1];
-      const x = timeScale(startTime, endTime);
+      const startTime = data[0].date;
+      const endTime = data[data.length-1].date;
+      const x = timeScale(startTime, endTime, settings.width);
       const xi = x.invert;
-      drawBarChart(canvas, x, dates, height);
 
-      const cursor = canvas.append('line.cursor').attr('y2', height);
+      drawBarChart(data, ctx, x, settings);
+      drawPath(data, ctx, 'Number of files', 0, 100,   0, x, settings.width, dispatch);
+      drawPath(data, ctx, 'Number of lines', 1, 250, 150, x, settings.width, dispatch);
+      drawStacked(data, ctx, 4, 400, 300, x, settings.width, dispatch);
 
-      const pathColours = d3.scale.category10();
-      drawPath(data, 'Number of files', pathColours(0), 100,   0, x);
-      drawPath(data, 'Number of lines', pathColours(1), 250, 150, x);
-
-
-      drawStacked(data, 4, pathColours, 400, 300, x);
-
-      // Add an overlay to receive mouse events
-      eventZone = canvas.append('rect')
-        .attr('width', width)
-        .attr('height', height)
+      // must be done at the end to be the first object to receive DOM events
+      ctx.eventZone = ctx.canvas.append('rect')
+        .attr('width', settings.width)
+        .attr('height', settings.height)
         .attr('opacity', 0);
-      eventZone
-        .on('mousemove', mouseMove(data, xi, cursor, eventZone))
-        .on('mouseover', mouseOver(cursor))
-        .on('mouseout', mouseOut(cursor));
+      ctx.eventZone
+        .on('mousemove', mouseMove(data, xi, ctx, dispatch))
+        .on('mouseover', mouseOver(ctx, dispatch))
+        .on('mouseout', mouseOut(ctx, dispatch));
     });
   }
 
