@@ -1,6 +1,8 @@
 (function() {
   'use strict';
   const timeParse = d3.time.format.utc('%Y-%m-%d %H:%M:%S %Z').parse;
+
+  //TODO: use d3.extent
   const timeScale = (minDate, maxDate, width) =>
     d3.time.scale()
       .domain([minDate, d3.time.day.offset(maxDate, 1)])
@@ -83,7 +85,7 @@
   const minOf = minMax(Math.min);
 
   // generator of the d attribute of a <path>
-  const makeSvgLine = (field, scale, x) => d3.svg.line()
+  const makeSvgLinePath = (field, scale, x) => d3.svg.line()
     .x(d=>x(d.date))
     .y(d=>scale(d[field]))
     .interpolate('step-before');
@@ -91,10 +93,10 @@
   const dispatch = d3.dispatch('mousemove', 'mouseover', 'mouseout');
 
   // create a path on the evolution of a field in a dataset
-  const drawPath = (data, ctx, fieldName, colourIndex, ymin, ymax, x, width, dispatch) => {
+  const drawPath = (data, ctx, fieldName, colourIndex, ymin, ymax, x, settings, dispatch) => {
     const id = idFrom(fieldName);
     const y = linearScale(minOf(data, fieldName), maxOf(data, fieldName), ymin, ymax);
-    const path = makeSvgLine(fieldName, y, x);
+    const path = makeSvgLinePath(fieldName, y, x);
     const colour = ctx.colours(colourIndex);
     const group = ctx.canvas.append('g.path')
       .attr('id', id);
@@ -103,7 +105,7 @@
       .attr('d', path)
       .attr('stroke', colour);
     group.append('text')
-      .attr('x', width)
+      .attr('x', settings.width)
       .attr('y', y(data[data.length-1][fieldName])-5)
       .text(fieldName)
       .attr('fill', colour);
@@ -146,11 +148,61 @@
       dispatch.mouseout();
     };
 
-  const drawStacked = (data, canvas, max, ymin, ymax, x, width, dispatch) => {
-    for (let i=0; i<=max; i++) {
-      let label = Object.keys(data[0]).find(e => e.startsWith(i+' - '));
-      drawPath(data, canvas, label, i, ymin, ymax, x, width, dispatch);
-    }
+
+  //==========================================================================
+
+  const drawStack = (data, ctx, max, ymin, ymax, x, settings, dispatch) => {
+    // TODO: collapse small values into 'rest'
+    let keys = Object.keys(data[0]).filter(key => /^\d+ - /.test(key)).splice(0, max);
+    var y = d3.scale.linear()
+      .range([ymin, ymax])
+      .domain([0, 2000]);
+
+    const stackData = data.map(commit => {
+      let commitObj = { date: commit.date };
+      for (let key of keys) {
+        commitObj[key] = +commit[key];
+      }
+      return commitObj;
+    });
+
+    var area = d3.svg.area()
+      .x(d => x(d.date))
+      .y0(d => y(d.y0))
+      .y1(d => y(d.y0 + d.y));
+
+    let color = d3.scale.category20b()
+      .domain(keys);
+
+    var stack = d3.layout.stack()
+      .values(d => d.values);
+
+    var layout = stack(keys.map(name => {
+      return { name: name, values: stackData.map(d => {
+        return { date: d.date, y: d[name] };
+      })}}));
+
+
+    var browser = ctx.canvas.selectAll(".browser")
+        .data(layout)
+      .enter().append("g")
+        .attr("class", "browser");
+
+
+    browser.append("path")
+      .attr("class", "area")
+      .attr("d", d => area(d.values))
+      .style("fill", d => color(d.name))
+      .style("opacity", 0.7);
+
+    browser.append("text")
+      .datum(function(d) { return {name: d.name, value: d.values[d.values.length - 1]}; })
+      .translate(d => [x(d.value.date), y(d.value.y0 + d.value.y / 2)])
+      .attr("x", -6)
+      .attr("dy", ".35em")
+      .text(function(d) { return d.name.replace(/^\d+ - /, ''); });
+
+
   }
 
   const buildGfxContext = (settings) => {
@@ -194,9 +246,9 @@
       const xi = x.invert;
 
       drawBarChart(data, ctx, x, settings);
-      drawPath(data, ctx, 'Number of files', 0, 100,   0, x, settings.width, dispatch);
-      drawPath(data, ctx, 'Number of lines', 1, 250, 150, x, settings.width, dispatch);
-      drawStacked(data, ctx, 4, 400, 300, x, settings.width, dispatch);
+      drawPath(data, ctx, 'Number of files', 0, 100,   0, x, settings, dispatch);
+      drawPath(data, ctx, 'Number of lines', 1, 250, 150, x, settings, dispatch);
+      drawStack(data, ctx, 3, 400, 300, x, settings, dispatch);
 
       // must be done at the end to be the first object to receive DOM events
       ctx.eventZone = ctx.canvas.append('rect')
