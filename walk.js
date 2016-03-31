@@ -49,6 +49,7 @@ do {
 
   console.log(csvLine([date, message, numFiles, numLines].concat(lineCounts)));
 
+  // TODO: count the number of commits to skip so that we don't have too many lines in the CSV
   try {
     run('git', ['reset', '--hard', 'HEAD~'], 'ignore');
   } catch (e) {

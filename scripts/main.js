@@ -22,7 +22,7 @@
     const yAxis = d3.svg.axis()
       .scale(yScale)
       .orient('left')
-      .ticks(10);
+      .ticks(3);
 
     const svgXAxis = ctx.canvas.append('g.axis')
       .translate([0, height])
@@ -53,15 +53,17 @@
     }
   };
 
+  //==========================================================================
 
-  const drawBarChart = (commits, ctx, x, settings) => {
+  const drawBarChart = (commits, ctx, x, settings, min, max) => {
     const values = commits.map(line => line.date);
 
     const data = d3.layout.histogram()
       .bins(x.ticks(settings.numberOfBins))
       (values);
+    console.log(data)
     const maxCommitsPerBin = Math.max.apply(null, data.map(bin => bin.length));
-    const y = linearScale(0, maxCommitsPerBin, settings.height, 0);
+    const y = linearScale(0, maxCommitsPerBin, max - min, 0);
     const barWidth = x(data[0].dx) - x(0) + 1;
     const barWidthInDays = data[0].dx / 86400000;
     const bar = ctx.canvas.selectAll('.bar')
@@ -72,9 +74,11 @@
     bar.append('rect')
       .attr('x', 1)
       .attr('width', barWidth)
-      .attr('height', d => settings.height - y(d.y));
-    drawAxes(x, y, ctx, settings.height, 'commits', `bar width: ${barWidthInDays.toFixed()} days`);
+      .attr('height', d => max - min - y(d.y));
+    drawAxes(x, y, ctx, max - min, 'commits', `bar width: ${barWidthInDays.toFixed()} days`);
   }
+
+  //==========================================================================
 
   // make an identifier from any string
   const idFrom = str => str.replace(/[^\w]/g, '_').toLowerCase();
@@ -92,14 +96,22 @@
 
   const dispatch = d3.dispatch('mousemove', 'mouseover', 'mouseout');
 
+  //==========================================================================
+
   // create a path on the evolution of a field in a dataset
   const drawPath = (data, ctx, fieldName, colourIndex, ymin, ymax, x, settings, dispatch) => {
     const id = idFrom(fieldName);
     const y = linearScale(minOf(data, fieldName), maxOf(data, fieldName), ymin, ymax);
     const path = makeSvgLinePath(fieldName, y, x);
     const colour = ctx.colours(colourIndex);
+    //const background = ctx.canvas.append('g.background')
     const group = ctx.canvas.append('g.path')
       .attr('id', id);
+    group.append('rect')
+      .attr('x', 0).attr('y', ymax)
+      .attr('width', settings.width).attr('height', ymin-ymax)
+      .style('fill', colour)
+      .style('opacity', .2);
     group.append('path')
       .datum(data)
       .attr('d', path)
@@ -151,59 +163,90 @@
 
   //==========================================================================
 
+  // commits: array of { 'date', ^\d+ - ' }
+  // keysToKeep: array of keys to include in results
+  // All other keys will be summed up into '∞ - other'
+  // 'date' will be copied as is
+  const collapseRest = (commits, keysToKeep) => {
+    return commits.map(commit => {
+      const newCommit = { date: commit.date };
+      const commitKeys = Object.keys(commit);
+      let sum = 0;
+      for (let key of commitKeys) {
+        if (key !== 'date') {
+          if (keysToKeep.indexOf(key) === -1) {
+            sum += +commit[key];
+          } else {
+            newCommit[key] = +commit[key];
+          }
+        }
+      }
+      newCommit['∞ - other'] = sum;
+      return newCommit;
+    });
+  }
+
+
+  //==========================================================================
+
   const drawStack = (data, ctx, max, ymin, ymax, x, settings, dispatch) => {
-    // TODO: collapse small values into 'rest'
-    let keys = Object.keys(data[0]).filter(key => /^\d+ - /.test(key)).splice(0, max);
-    var y = d3.scale.linear()
+  // TODO: calculate max so that only the languages adding more than 90% are shown
+    const y = d3.scale.linear()
       .range([ymin, ymax])
       .domain([0, 2000]);
 
-    const stackData = data.map(commit => {
-      let commitObj = { date: commit.date };
-      for (let key of keys) {
-        commitObj[key] = +commit[key];
-      }
-      return commitObj;
-    });
+    // remove data we don't need
+    const isKeyForStack = (keyVal, keyName) => keyName === 'date' || /^\d+ - /.test(keyName);
+    const dataToKeep = data.map(datum => R.pickBy(isKeyForStack, datum));
+
+    // collapse the numbers of columns of the form '[number] - ' where number >= max
+    const keysToKeep = Object.keys(data[0]).filter(key => /^\d+ - /.test(key)).splice(0, max);
+    const stackData = collapseRest(dataToKeep, keysToKeep);
 
     var area = d3.svg.area()
       .x(d => x(d.date))
       .y0(d => y(d.y0))
       .y1(d => y(d.y0 + d.y));
 
-    let color = d3.scale.category20b()
-      .domain(keys);
+    var keysToDisplay = R.append('∞ - other', keysToKeep);
+    let colour = d3.scale.category20b()
+      .domain(keysToKeep);
 
     var stack = d3.layout.stack()
       .values(d => d.values);
 
-    var layout = stack(keys.map(name => {
+    var layout = stack(keysToDisplay.map(name => {
       return { name: name, values: stackData.map(d => {
         return { date: d.date, y: d[name] };
       })}}));
 
+    ctx.canvas.append('rect')
+      .attr('x', 0).attr('y', ymax)
+      .attr('width', settings.width).attr('height', ymin-ymax)
+      .style('fill', colour(0))
+      .style('opacity', .2);
 
-    var browser = ctx.canvas.selectAll(".browser")
+    var language = ctx.canvas.selectAll(".language")
         .data(layout)
       .enter().append("g")
-        .attr("class", "browser");
+        .attr("class", "language");
 
-
-    browser.append("path")
+    language.append("path")
       .attr("class", "area")
       .attr("d", d => area(d.values))
-      .style("fill", d => color(d.name))
+      .style("fill", d => colour(d.name))
       .style("opacity", 0.7);
 
-    browser.append("text")
+    language.append("text")
       .datum(function(d) { return {name: d.name, value: d.values[d.values.length - 1]}; })
       .translate(d => [x(d.value.date), y(d.value.y0 + d.value.y / 2)])
       .attr("x", -6)
       .attr("dy", ".35em")
-      .text(function(d) { return d.name.replace(/^\d+ - /, ''); });
-
-
+      .text(function(d) { return d.name.replace(/^[\d+|∞] - /, ''); });
   }
+
+  //==========================================================================
+
 
   const buildGfxContext = (settings) => {
     const canvas = d3.select('#canvas')
@@ -225,6 +268,8 @@
     return { canvas: canvas, message: message, cursor: cursor, eventZone: eventZone, colours: colours };
   }
 
+  //==========================================================================
+
   const main = () => {
     const settings = {
       margin: {top: 80, right: 40, bottom: 40, left:40},
@@ -245,10 +290,10 @@
       const x = timeScale(startTime, endTime, settings.width);
       const xi = x.invert;
 
-      drawBarChart(data, ctx, x, settings);
-      drawPath(data, ctx, 'Number of files', 0, 100,   0, x, settings, dispatch);
-      drawPath(data, ctx, 'Number of lines', 1, 250, 150, x, settings, dispatch);
-      drawStack(data, ctx, 3, 400, 300, x, settings, dispatch);
+      drawBarChart(data, ctx, x, settings, 0, 100);
+      drawPath(data, ctx, 'Number of files', 0, 250, 150, x, settings, dispatch);
+      drawPath(data, ctx, 'Number of lines', 1, 400, 300, x, settings, dispatch);
+      drawStack(data, ctx, 3, 550, 450, x, settings, dispatch);
 
       // must be done at the end to be the first object to receive DOM events
       ctx.eventZone = ctx.canvas.append('rect')
