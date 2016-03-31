@@ -53,7 +53,7 @@ do {
   try {
     run('git', ['reset', '--hard', 'HEAD~'], 'ignore');
   } catch (e) {
-    console.log("EXCEPT");
+    // console.log("EXCEPT");
     finished = e;
   }
 } while (!finished);

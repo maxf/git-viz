@@ -32,7 +32,7 @@
         .style('text-anchor', 'end')
         .attr('dx', '-.8em')
         .attr('dy', '-.55em')
-        .attr('transform', 'rotate(-90)' );
+        .attr('transform', 'rotate(-45)' );
 
     if (yLabel) {
       svgXAxis.append('text')
@@ -101,7 +101,7 @@
   // create a path on the evolution of a field in a dataset
   const drawPath = (data, ctx, fieldName, colourIndex, ymin, ymax, x, settings, dispatch) => {
     const id = idFrom(fieldName);
-    const y = linearScale(minOf(data, fieldName), maxOf(data, fieldName), ymin, ymax);
+    const y = linearScale(0, maxOf(data, fieldName), ymin, ymax);
     const path = makeSvgLinePath(fieldName, y, x);
     const colour = ctx.colours(colourIndex);
     //const background = ctx.canvas.append('g.background')
@@ -117,7 +117,7 @@
       .attr('d', path)
       .attr('stroke', colour);
     group.append('text')
-      .attr('x', settings.width)
+      .attr('x', settings.width + 2)
       .attr('y', y(data[data.length-1][fieldName])-5)
       .text(fieldName)
       .attr('fill', colour);
@@ -125,13 +125,13 @@
     const cursorMarker = cursor.append('circle').attr('r', 5);
     const cursorText = cursor.append('text').translate([5, 15]);
 
-    dispatch.on("mousemove." + id, (xcoord, di) => {
+    dispatch.on('mousemove.' + id, (xcoord, di) => {
       const ycoord = y(di[fieldName]);
       cursor.translate([xcoord, ycoord]);
       cursorText.text(di[fieldName]);
     });
-    dispatch.on("mouseover."+id, () => { cursor.attr('visibility', 'visible') });
-    dispatch.on("mouseout."+id, () => { cursor.attr('visibility', 'hidden') });
+    dispatch.on('mouseover.'+id, () => { cursor.attr('visibility', 'visible') });
+    dispatch.on('mouseout.'+id, () => { cursor.attr('visibility', 'hidden') });
   };
 
   const bisectDate = d3.bisector(function(d) { return d.date; }).left;
@@ -226,22 +226,22 @@
       .style('fill', colour(0))
       .style('opacity', .2);
 
-    var language = ctx.canvas.selectAll(".language")
+    var language = ctx.canvas.selectAll('.language')
         .data(layout)
-      .enter().append("g")
-        .attr("class", "language");
+      .enter().append('g')
+        .attr('class', 'language');
 
-    language.append("path")
-      .attr("class", "area")
-      .attr("d", d => area(d.values))
-      .style("fill", d => colour(d.name))
-      .style("opacity", 0.7);
+    language.append('path')
+      .attr('class', 'area')
+      .attr('d', d => area(d.values))
+      .style('fill', d => colour(d.name))
+      .style('opacity', 0.7);
 
-    language.append("text")
+    language.append('text')
       .datum(function(d) { return {name: d.name, value: d.values[d.values.length - 1]}; })
       .translate(d => [x(d.value.date), y(d.value.y0 + d.value.y / 2)])
-      .attr("x", -6)
-      .attr("dy", ".35em")
+      .attr('x', '2px')
+      .attr('dy', '.35em')
       .text(function(d) { return d.name.replace(/^[\d+|∞] - /, ''); });
   }
 
