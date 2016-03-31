@@ -45,7 +45,7 @@ do {
   cloc = JSON.parse(run('cloc', ['.', '--json']));
   numFiles = cloc.SUM.nFiles;
   numLines = cloc.SUM.code;
-  lineCounts = fileTypes.map(type => cloc[type].code)
+  lineCounts = fileTypes.map(type => cloc[type] ? cloc[type].code : 0);
 
   console.log(csvLine([date, message, numFiles, numLines].concat(lineCounts)));
 
