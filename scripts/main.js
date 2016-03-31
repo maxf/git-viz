@@ -12,17 +12,31 @@
       .domain([dmin, dmax])
       .range([rmin, rmax]);
 
-  const drawAxes = (xScale, yScale, ctx, height, xLabel, yLabel) => {
 
-    const xAxis = d3.svg.axis()
-      .scale(xScale)
-      .orient('bottom')
-      .tickFormat(d3.time.format('%Y-%m'));
-
+  const drawYaxis = (ctx, yScale, yLabel) => {
     const yAxis = d3.svg.axis()
       .scale(yScale)
       .orient('left')
       .ticks(3);
+
+    const svgYAxis = ctx.canvas.append('g.axis')
+      .call(yAxis);
+
+    if (yLabel) {
+      svgYAxis.append('text')
+        .attr('transform', 'rotate(-90)')
+        .attr('y', 6)
+        .attr('dy', '.71em')
+        .style('text-anchor', 'end')
+        .text(yLabel);
+    }
+  }
+
+  const drawXaxis = (ctx, xScale, xLabel, height) => {
+    const xAxis = d3.svg.axis()
+      .scale(xScale)
+      .orient('bottom')
+      .tickFormat(d3.time.format('%Y-%m'));
 
     const svgXAxis = ctx.canvas.append('g.axis')
       .translate([0, height])
@@ -34,24 +48,12 @@
         .attr('dy', '-.55em')
         .attr('transform', 'rotate(-45)' );
 
-    if (yLabel) {
+    if (xLabel) {
       svgXAxis.append('text')
         .attr('x', 10).attr('y', -2)
-        .text(yLabel);
-    }
-
-    const svgYAxis = ctx.canvas.append('g.axis')
-      .call(yAxis);
-
-    if (yLabel) {
-      svgYAxis.append('text')
-        .attr('transform', 'rotate(-90)')
-        .attr('y', 6)
-        .attr('dy', '.71em')
-        .style('text-anchor', 'end')
         .text(xLabel);
     }
-  };
+  }
 
   //==========================================================================
 
@@ -75,7 +77,10 @@
       .attr('x', 1)
       .attr('width', barWidth)
       .attr('height', d => max - min - y(d.y));
-    drawAxes(x, y, ctx, max - min, 'commits', `bar width: ${barWidthInDays.toFixed()} days`);
+
+    drawXaxis(ctx, x, `bar width: ${barWidthInDays.toFixed()} days`, max-min)
+    drawYaxis(ctx, y, 'commits');
+
   }
 
   //==========================================================================
@@ -124,6 +129,9 @@
     const cursor = group.append('g').attr('fill', colour).attr('visibility', 'hidden');
     const cursorMarker = cursor.append('circle').attr('r', 5);
     const cursorText = cursor.append('text').translate([5, 15]);
+
+    drawYaxis(ctx, y);
+
 
     dispatch.on('mousemove.' + id, (xcoord, di) => {
       const ycoord = y(di[fieldName]);
@@ -243,6 +251,9 @@
       .attr('x', '2px')
       .attr('dy', '.35em')
       .text(function(d) { return d.name.replace(/^[\d+|∞] - /, ''); });
+
+    drawYaxis(ctx, y, 'lines');
+
   }
 
   //==========================================================================
@@ -259,7 +270,7 @@
       .append('text')
       .attr('x', settings.margin.left).attr('y', settings.margin.top/2);
 
-    const cursor = canvas.append('line.cursor').attr('y2', settings.height);
+    const cursor = canvas.append('line.cursor').attr('y2', settings.height + 200);
 
     const eventZone = null;
 
