@@ -8,7 +8,7 @@ svg {
   fill: transparent;
 }
 
-.axis path {
+.axis path, .axis line {
   stroke: black;
   fill: none;
 }

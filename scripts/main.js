@@ -12,25 +12,29 @@
       .domain([dmin, dmax])
       .range([rmin, rmax]);
 
+  //==========================================================================
 
   const drawYaxis = (ctx, yScale, yLabel) => {
     const yAxis = d3.svg.axis()
       .scale(yScale)
       .orient('left')
-      .ticks(3);
+      .ticks(4);
 
     const svgYAxis = ctx.canvas.append('g.axis')
       .call(yAxis);
 
     if (yLabel) {
+      const yPos = yScale.range()[1];
       svgYAxis.append('text')
-        .attr('transform', 'rotate(-90)')
-        .attr('y', 6)
+        .attr('transform', `translate(0, ${yPos}) rotate(-90)`)
+        .attr('y', -60)
         .attr('dy', '.71em')
         .style('text-anchor', 'end')
         .text(yLabel);
     }
   }
+
+  //==========================================================================
 
   const drawXaxis = (ctx, xScale, xLabel, height) => {
     const xAxis = d3.svg.axis()
@@ -78,8 +82,8 @@
       .attr('width', barWidth)
       .attr('height', d => max - min - y(d.y));
 
-    drawXaxis(ctx, x, `bar width: ${barWidthInDays.toFixed()} days`, max-min)
-    drawYaxis(ctx, y, 'commits');
+    drawXaxis(ctx, x, '', max-min)
+    drawYaxis(ctx, y, `Commits / ${barWidthInDays.toFixed()} days`);
 
   }
 
@@ -130,7 +134,7 @@
     const cursorMarker = cursor.append('circle').attr('r', 5);
     const cursorText = cursor.append('text').translate([5, 15]);
 
-    drawYaxis(ctx, y);
+    drawYaxis(ctx, y, fieldName);
 
 
     dispatch.on('mousemove.' + id, (xcoord, di) => {
@@ -252,7 +256,7 @@
       .attr('dy', '.35em')
       .text(function(d) { return d.name.replace(/^[\d+|∞] - /, ''); });
 
-    drawYaxis(ctx, y, 'lines');
+    drawYaxis(ctx, y, 'Lines per language');
 
   }
 
@@ -283,7 +287,7 @@
 
   const main = () => {
     const settings = {
-      margin: {top: 80, right: 40, bottom: 40, left:40},
+      margin: {top: 80, right: 40, bottom: 40, left:70},
       width: 800,
       height: 400,
       numberOfBins: 60
