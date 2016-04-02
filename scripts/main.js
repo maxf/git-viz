@@ -67,7 +67,6 @@
     const data = d3.layout.histogram()
       .bins(x.ticks(settings.numberOfBins))
       (values);
-    console.log(data)
     const maxCommitsPerBin = Math.max.apply(null, data.map(bin => bin.length));
     const y = linearScale(0, maxCommitsPerBin, max - min, 0);
     const barWidth = x(data[0].dx) - x(0) + 1;
@@ -203,16 +202,21 @@
 
   const drawStack = (data, ctx, max, ymin, ymax, x, settings, dispatch) => {
   // TODO: calculate max so that only the languages adding more than 90% are shown
-    const y = d3.scale.linear()
-      .range([ymin, ymax])
-      .domain([0, 2000]);
 
     // remove data we don't need
     const isKeyForStack = (keyVal, keyName) => keyName === 'date' || /^\d+ - /.test(keyName);
     const dataToKeep = data.map(datum => R.pickBy(isKeyForStack, datum));
 
+    const mostRecentDatum = dataToKeep[dataToKeep.length-1];
+    const maxRecentLines = Object.keys(mostRecentDatum).reduce((acc, curr) =>
+      (/^\d+ - /.test(curr)) ? acc + (+mostRecentDatum[curr]) : acc, 0);
+
+    const y = d3.scale.linear()
+      .range([ymin, ymax])
+      .domain([0, maxRecentLines]);
+
     // collapse the numbers of columns of the form '[number] - ' where number >= max
-    const keysToKeep = Object.keys(data[0]).filter(key => /^\d+ - /.test(key)).splice(0, max);
+    const keysToKeep = Object.keys(data[data.length-1]).filter(key => /^\d+ - /.test(key)).splice(0, max);
     const stackData = collapseRest(dataToKeep, keysToKeep);
 
     var area = d3.svg.area()
