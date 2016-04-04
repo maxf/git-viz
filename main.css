@@ -1,0 +1,28 @@
+svg {
+  background-color: #ddd;
+  font-family: sans-serif;
+  font-size: 80%;
+}
+
+#frame {
+  fill: transparent;
+}
+
+.axis path, .axis line {
+  stroke: black;
+  fill: none;
+}
+
+.bar {
+  fill: darkgrey;
+}
+
+.path {
+  stroke-width: 2px;
+  fill: none;
+}
+
+.cursor {
+  stroke: black;
+  stroke-width: .2px;
+}
