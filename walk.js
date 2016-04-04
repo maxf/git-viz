@@ -21,6 +21,9 @@ function csvLine(arr) {
 run('git', ['reset', '--hard', 'HEAD']);
 run('git', ['pull']);
 
+const numLines = +run('git', ['rev-list', 'HEAD', '--count']);
+const commitStep = 1 + Math.min(1, Math.floor(numLines/800));
+
 // retrieve the 5 latest most used languages
 firstCloc = JSON.parse(run('cloc', ['.', '--json']));
 delete firstCloc['header'];
@@ -51,7 +54,7 @@ do {
 
   // TODO: count the number of commits to skip so that we don't have too many lines in the CSV
   try {
-    run('git', ['reset', '--hard', 'HEAD~'], 'ignore');
+    run('git', ['reset', '--hard', 'HEAD~'+commitStep], 'ignore');
   } catch (e) {
     // console.log("EXCEPT");
     finished = e;
