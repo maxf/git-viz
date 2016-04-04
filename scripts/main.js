@@ -299,7 +299,7 @@
 
     const ctx = buildGfxContext(settings);
 
-    d3.csv('repo/lines.csv', (error, data) => {
+    d3.csv('git-data/lines.csv', (error, data) => {
       if (error) throw error;
       data = data.map(d => { d.date = timeParse(d.date); return d; });
       data.sort((a,b) => a.date.getTime() - b.date.getTime());
