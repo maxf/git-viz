@@ -269,6 +269,7 @@
 
   const buildGfxContext = (settings) => {
     const canvas = d3.select('#canvas')
+      .html('')
       .append('g')
       .attr('width', settings.width)
       .attr('height', settings.height)
@@ -289,7 +290,7 @@
 
   //==========================================================================
 
-  const main = () => {
+  const main = (filePath) => {
     const settings = {
       margin: {top: 80, right: 40, bottom: 40, left:70},
       width: 800,
@@ -299,7 +300,7 @@
 
     const ctx = buildGfxContext(settings);
 
-    d3.csv('git-data/lines.csv', (error, data) => {
+    d3.csv(filePath, (error, data) => {
       if (error) throw error;
       data = data.map(d => { d.date = timeParse(d.date); return d; });
       data.sort((a,b) => a.date.getTime() - b.date.getTime());
@@ -326,7 +327,14 @@
     });
   }
 
+  Repos.getIndex(fileList => {
+    const reposDiv = d3.select('#repos');
+    reposDiv.html(Repos.makeSelector(fileList));
+    reposDiv.select('select').on('change', () => {
+      main('git-data/'+d3.event.target.value);
+    });
+    main('git-data/'+fileList[0]);
 
-  main();
+  });
 
 }());
